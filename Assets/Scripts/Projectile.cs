@@ -11,8 +11,7 @@ public class Projectile : MonoBehaviour
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        Vector2 newVelocity = Vector2.Reflect(direction, collision.contacts[0].normal);
-        rb.linearVelocity = newVelocity;
+        rb.linearVelocity = Vector2.Reflect(direction, collision.contacts[0].normal);
         direction = rb.linearVelocity;
     }
 }

@@ -6,7 +6,7 @@ public class PlayerShoot : MonoBehaviour
     [SerializeField] GameObject projectilePreFabb;
     [SerializeField] float projectileForce = 20f;
 
-
+    bool lookingLeft = true;
 
     void Update()
     {
@@ -52,7 +52,23 @@ public class PlayerShoot : MonoBehaviour
                 {
                     Shoot(firePoints[7]);
                 }
+                else if (lookingLeft)
+                {
+                    Shoot(firePoints[0]);
+                }
+                else
+                {
+                    Shoot(firePoints[3]);
+                }
             }
+        }
+        if(Input.GetAxisRaw("Horizontal") == -1 && lookingLeft)
+        {
+            lookingLeft = false;
+        }
+        if (Input.GetAxisRaw("Horizontal") == 1 && !lookingLeft)
+        {
+            lookingLeft = true;
         }
     }
 
