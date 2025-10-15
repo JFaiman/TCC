@@ -29,10 +29,17 @@ public class PlayerData : ScriptableObject
 	public float jumpHangTimeThreshold; //Speeds (close to 0) where the player will experience extra "jump hang". The player's velocity.y is closest to 0 at the jump's apex (think of the gradient of a parabola or quadratic function)
 	[Space(0.5f)]
 	public float jumpHangAccelerationMult; 
-	public float jumpHangMaxSpeedMult; 				
+	public float jumpHangMaxSpeedMult;
 
 
-	[Space(20)]
+    [Header("Wall Jump")]
+    public Vector2 wallJumpForce; //The actual force (this time set by us) applied to the player when wall jumping.
+    [Space(5)]
+    [Range(0f, 1f)] public float wallJumpRunLerp; //Reduces the effect of player's movement while wall jumping.
+    [Range(0f, 1.5f)] public float wallJumpTime; //Time after wall jumping the player's movement is slowed for.
+
+
+    [Space(20)]
 
     [Header("Assists")]
 	[Range(0.01f, 0.5f)] public float coyoteTime; //Grace period after falling off a platform, where you can still jump

@@ -19,11 +19,14 @@ MonoBehaviour:
   accelInAir: 1
   deccelInAir: 1
   doConserveMomentum: 1
-  jumpHeight: 2
-  jumpTimeToApex: 1
-  jumpForce: 100
+  jumpHeight: 0
+  jumpTimeToApex: 0
+  jumpForce: 20
   jumpHangTimeThreshold: 0
   jumpHangAccelerationMult: 10
   jumpHangMaxSpeedMult: 10
+  wallJumpForce: {x: 15, y: 15}
+  wallJumpRunLerp: 0.008675743
+  wallJumpTime: 0.275
   coyoteTime: 0.5
-  jumpInputBufferTime: 0.01
+  jumpInputBufferTime: 0.16

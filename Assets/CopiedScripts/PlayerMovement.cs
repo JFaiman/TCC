@@ -7,6 +7,7 @@
  */
 
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -24,18 +25,26 @@ public class PlayerMovement : MonoBehaviour
 	//These are fields which can are public allowing for other sctipts to read them
 	//but can only be privately written to.
 	public bool IsJumping { get; private set; }
+    public bool IsWallJumping { get; private set; }
 
-	//Timers (also all fields, could be private and a method returning a bool could be used)
-	public float LastOnGroundTime { get; private set; }
+    //Timers (also all fields, could be private and a method returning a bool could be used)
+    public float LastOnGroundTime { get; private set; }
+    public float LastOnWallTime { get; private set; }
+    public float LastOnWallRightTime { get; private set; }
+    public float LastOnWallLeftTime { get; private set; }
 
-	//Jump
-	private bool _isJumpCut;
+    //Jump
+    private bool _isJumpCut;
 	private bool _isJumpFalling;
+	private bool wallJumped;
+    private float _wallJumpStartTime;
+    private int _lastWallJumpDir;
 
-	#endregion
 
-	#region INPUT PARAMETERS
-	private Vector2 _moveInput;
+    #endregion
+
+    #region INPUT PARAMETERS
+    private Vector2 _moveInput;
 
 	public float LastPressedJumpTime { get; private set; }
 	#endregion
@@ -44,8 +53,11 @@ public class PlayerMovement : MonoBehaviour
 	//Set all of these up in the inspector
 	[Header("Checks")] 
 	[SerializeField] private Transform _groundCheckPoint;
-	//Size of groundCheck depends on the size of your character generally you want them slightly small than width (for ground) and height (for the wall check)
-	[SerializeField] private Vector2 _groundCheckSize = new Vector2(0.49f, 0.03f);
+    [SerializeField] private Transform leftWallCheck;
+    [SerializeField] private Transform rigthWallCheck;
+    [SerializeField] private Vector2 wallCheckSize = new Vector2(0.5f, 1f);
+    //Size of groundCheck depends on the size of your character generally you want them slightly small than width (for ground) and height (for the wall check)
+    [SerializeField] private Vector2 _groundCheckSize = new Vector2(0.49f, 0.03f);
     #endregion
 
     #region LAYERS & TAGS
@@ -70,10 +82,13 @@ public class PlayerMovement : MonoBehaviour
         #region TIMERS
         LastOnGroundTime -= Time.deltaTime;
 		LastPressedJumpTime -= Time.deltaTime;
-		#endregion
+        LastOnWallTime -= Time.deltaTime;
+        LastOnWallRightTime -= Time.deltaTime;
+        LastOnWallLeftTime -= Time.deltaTime;
+        #endregion
 
-		#region INPUT HANDLER
-		_moveInput.x = Input.GetAxisRaw("Horizontal");
+        #region INPUT HANDLER
+        _moveInput.x = Input.GetAxisRaw("Horizontal");
 		_moveInput.y = Input.GetAxisRaw("Vertical");
 
 		if(Input.GetKeyDown(KeyCode.Space))
@@ -95,8 +110,22 @@ public class PlayerMovement : MonoBehaviour
 			if (Physics2D.OverlapBox(_groundCheckPoint.position, _groundCheckSize, 0, _groundLayer)) //checks if set box overlaps with ground
 			{
 				LastOnGroundTime = Data.coyoteTime; //if so sets the lastGrounded to coyoteTime
-            }		
-		}
+				wallJumped = false;
+            }
+			else {
+                if (Physics2D.OverlapBox(leftWallCheck.position, wallCheckSize, 0, _groundLayer))
+				{
+                    //LastOnWallLeftTime = Data.coyoteTime;
+                    LastOnWallLeftTime = 0;
+                }
+				else if(Physics2D.OverlapBox(rigthWallCheck.position, wallCheckSize, 0, _groundLayer))
+                {
+                    //LastOnWallRightTime = Data.coyoteTime;
+                    LastOnWallRightTime = 0;
+                }
+				LastOnWallTime = Mathf.Max(LastOnWallLeftTime, LastOnWallRightTime);
+            }           
+        }
 		#endregion
 
 		#region JUMP CHECKS
@@ -114,8 +143,13 @@ public class PlayerMovement : MonoBehaviour
 			_isJumpFalling = false;
 		}
 
-		//Jump
-		if (CanJump() && LastPressedJumpTime > 0)
+        if (IsWallJumping && Time.time - _wallJumpStartTime > Data.wallJumpTime)
+        {
+            IsWallJumping = false;
+        }
+
+        //Jump
+        if (CanJump() && LastPressedJumpTime > 0)
 		{
 			IsJumping = true;
 			_isJumpCut = false;
@@ -123,7 +157,21 @@ public class PlayerMovement : MonoBehaviour
 			Jump();
 		}
 
-		if (IsJumping || _isJumpFalling)
+        //if (CanWallJump() && LastPressedJumpTime > 0 && !wallJumped)
+        if (CanWallJump() && LastPressedJumpTime > 0)
+        {
+            IsWallJumping = true;
+            IsJumping = false;
+            _isJumpCut = false;
+            _isJumpFalling = false;
+
+            _wallJumpStartTime = Time.time;
+            _lastWallJumpDir = (LastOnWallRightTime >= 0) ? -1 : 1;
+
+            WallJump(_lastWallJumpDir);
+        }
+
+        if (IsJumping || _isJumpFalling)
 		{
             if (Input.GetKeyDown(KeyCode.Space))
 			{
@@ -135,7 +183,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
 	{
-		Run(1);		
+        if (IsWallJumping)
+            Run(Data.wallJumpRunLerp);
+        else
+            Run(1);
     }
 
     #region INPUT CALLBACKS
@@ -177,7 +228,7 @@ public class PlayerMovement : MonoBehaviour
 		if (LastOnGroundTime > 0)
 			accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.runAccelAmount : Data.runDeccelAmount;
 		else
-			accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.runAccelAmount * Data.accelInAir : Data.runDeccelAmount * Data.deccelInAir;
+			accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.runAccelAmount * Data.accelInAir : Data.runDeccelAmount * Data.deccelInAir; 
 		#endregion
 
 		#region Add Bonus Jump Apex Acceleration
@@ -235,8 +286,42 @@ public class PlayerMovement : MonoBehaviour
 		RB.AddForce(Vector2.up * force, ForceMode2D.Impulse);
 		#endregion
 	}
-	#endregion
 
+
+	private void WallJump(int dir)
+	{
+		//Ensures we can't call Wall Jump multiple times from one press
+		LastPressedJumpTime = 0;
+		LastOnGroundTime = 0;
+        LastOnWallRightTime = 0;
+        LastOnWallLeftTime = 0;
+        wallJumped = true;
+		
+
+		#region Perform Wall Jump
+		Vector2 force = new Vector2(Data.wallJumpForce.x, Data.wallJumpForce.y);
+		force.x *= dir; //apply force in opposite direction of wall
+
+		if (Mathf.Sign(RB.linearVelocity.x) != Mathf.Sign(force.x))
+			force.x -= RB.linearVelocity.x;
+
+		if (RB.linearVelocity.y < 0) //checks whether player is falling, if so we subtract the velocity.y (counteracting force of gravity). This ensures the player always reaches our desired jump force or greater
+			force.y -= RB.linearVelocity.y;
+
+		//Unlike in the run we want to use the Impulse mode.
+		//The default mode will apply are force instantly ignoring masss
+		RB.AddForce(force, ForceMode2D.Impulse);
+        #endregion
+    }
+    #endregion
+
+
+    private void ParryJump()
+	{
+		RB.linearVelocity = new Vector2(0f, 0f);
+
+        RB.AddForce(Vector2.up * Data.jumpForce, ForceMode2D.Impulse);
+    }
 
     #region CHECK METHODS
     private bool CanJump()
@@ -248,6 +333,13 @@ public class PlayerMovement : MonoBehaviour
     {
 		return IsJumping && RB.linearVelocity.y > 0;
     }
+
+    private bool CanWallJump()
+    {
+        //return LastPressedJumpTime > 0 && LastOnWallTime > 0 && LastOnGroundTime <= 0 && (!IsWallJumping ||
+        // (LastOnWallRightTime > 0 && _lastWallJumpDir == 1) || (LastOnWallLeftTime > 0 && _lastWallJumpDir == -1));
+        return LastPressedJumpTime > 0 && LastOnWallTime == 0 && LastOnGroundTime <= 0;
+    }
     #endregion
 
 
@@ -258,6 +350,9 @@ public class PlayerMovement : MonoBehaviour
 		Gizmos.DrawWireCube(_groundCheckPoint.position, _groundCheckSize);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(this.transform.position, hitboxToParry);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(leftWallCheck.position, wallCheckSize);
+        Gizmos.DrawWireCube(rigthWallCheck.position, wallCheckSize);
     }
     #endregion
 
@@ -266,7 +361,7 @@ public class PlayerMovement : MonoBehaviour
 	{
 		if (Physics2D.OverlapCircle(this.transform.position, hitboxToParry, projectileLayer))
 		{
-			Jump();
+			ParryJump();
 		}
 	}
 }
