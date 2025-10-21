@@ -8,11 +8,18 @@ public class Projectile : MonoBehaviour
     Vector2 direction;
     private IEnumerator coroutine;
 
-    private void Start()
+
+    public void SetProjectileLife()
     {
         direction = rb.linearVelocity;
         coroutine = DestroyTimer();
         StartCoroutine(coroutine);
+    }
+    private void OnEnable()
+    {
+        //direction = rb.linearVelocity;
+        //coroutine = DestroyTimer();
+        //StartCoroutine(coroutine);
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
@@ -23,6 +30,7 @@ public class Projectile : MonoBehaviour
     IEnumerator DestroyTimer()
     {
         yield return new WaitForSeconds(projectileLifeTime);
-        Destroy(this.gameObject);
+        //Destroy(this.gameObject);
+        this.gameObject.SetActive(false);
     }
 }

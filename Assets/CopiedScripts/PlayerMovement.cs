@@ -40,6 +40,7 @@ public class PlayerMovement : MonoBehaviour
     private float _wallJumpStartTime;
     private int _lastWallJumpDir;
 
+    [SerializeField] GameObject projectilePreFabb;
 
     #endregion
 
@@ -361,6 +362,10 @@ public class PlayerMovement : MonoBehaviour
 	{
 		if (Physics2D.OverlapCircle(this.transform.position, hitboxToParry, projectileLayer))
 		{
+			if(Physics2D.OverlapCircle(this.transform.position, hitboxToParry, projectileLayer) == projectilePreFabb.GetComponent<CircleCollider2D>())
+			{
+				projectilePreFabb.SetActive(false);
+			}
 			ParryJump();
 		}
 	}

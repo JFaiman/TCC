@@ -75,9 +75,16 @@ public class PlayerShoot : MonoBehaviour
     
     void Shoot(Transform firePoint)
     {
-        GameObject projectile = Instantiate(projectilePreFabb, firePoint.position, firePoint.rotation);
-        Rigidbody2D rb = projectile.GetComponent<Rigidbody2D>();
-        rb.AddForce(firePoint.up *projectileForce, ForceMode2D.Impulse);
+        //GameObject projectile = Instantiate(projectilePreFabb, firePoint.position, firePoint.rotation);
+        if (projectilePreFabb.activeSelf == false)
+        {
+            projectilePreFabb.SetActive(true);
+            projectilePreFabb.transform.position = firePoint.position;
+            projectilePreFabb.transform.rotation = firePoint.rotation;
+            Rigidbody2D rb = projectilePreFabb.GetComponent<Rigidbody2D>();
+            rb.AddForce(firePoint.up * projectileForce, ForceMode2D.Impulse);
+            projectilePreFabb.GetComponent<Projectile>().SetProjectileLife();
+        }
     }
     
 }
